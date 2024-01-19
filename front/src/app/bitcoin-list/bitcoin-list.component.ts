@@ -1,35 +1,56 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { ElectronService } from 'ngx-electron';
+import { NgZone } from '@angular/core';
 
 @Component({
   selector: 'app-bitcoin-list',
   standalone: true,
-  imports: [],
+  imports: [CommonModule],
   templateUrl: './bitcoin-list.component.html',
   styleUrls: ['./bitcoin-list.component.css'],
 })
 export class BitcoinListComponent implements OnInit {
-  bitcoinData: any = [];
+  twoWeeksData: any = [];
+  todayData: any = [];
+  dataReady: boolean = false;
+  data: any;
 
-  constructor(private _electronService: ElectronService) {}
+  constructor(
+    private _electronService: ElectronService,
+    private ngZone: NgZone
+  ) {}
 
   ngOnInit(): void {
-    if (this._electronService.isElectronApp) {
-      if (this._electronService.ipcRenderer) {
-        this._electronService.ipcRenderer
-          .invoke('request-bitcoin-data') // Use invoke instead of sendSync
-          .then((data) => {
-            this.bitcoinData = data;
-            console.log(this.bitcoinData);
-          })
-          .catch((error) => {
-            console.error('Error sending IPC request:', error);
-          });
-      } else {
-        console.error('ipcRenderer is not available in Electron service.');
+    this._electronService.ipcRenderer.on(
+      'update-bitcoin-data',
+      (event, data) => {
+        this.ngZone.run(() => {
+          this.twoWeeksData = data.twoWeeksData.data.reverse();
+          this.checkDataReady();
+        });
       }
-    } else {
-      console.warn('Not running in an Electron app.');
+    );
+
+    this._electronService.ipcRenderer.on(
+      'update-bitcoin-today-data',
+      (event, data) => {
+        this.ngZone.run(() => {
+          this.todayData = data.todayData.data.at(-1);
+          this.checkDataReady();
+        });
+      }
+    );
+  }
+
+  openDetailsWindow(data: any): void {
+    console.log('Abriendo ventana de detalles con datos:', data);
+    this._electronService.ipcRenderer.send('open-details-window', data);
+  }
+
+  private checkDataReady() {
+    if (this.twoWeeksData.length > 0 && this.todayData) {
+      this.dataReady = true;
     }
   }
 }
