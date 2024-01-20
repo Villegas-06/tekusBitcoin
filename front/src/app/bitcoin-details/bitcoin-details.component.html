@@ -9,18 +9,16 @@
       <div class="flex min-w-0 gap-x-4">
         <div class="min-w-0 flex-auto">
           <p class="text-lg font-semibold leading-6 text-gray-900">
-            Detalles Bitcoin
+            Details Bitcoin
           </p>
           <p class="mt-1 truncate text-md leading-5 text-gray-800">
-            Price: {{ detailsData.priceUsd }}
+            Price USD: {{ detailsData.priceUsd | number }}
+            <br />
+            Price COP: {{ priceBitcoinCop | number }}
+            <br />
+            Price EUR: {{ priceBitcoinEur | number }}
           </p>
         </div>
-      </div>
-      <div class="hidden shrink-0 sm:flex sm:flex-col sm:items-end">
-        <p class="text-md leading-6 text-gray-900">Last Action</p>
-        <p class="mt-1 text-md leading-5 text-gray-800">
-          <time [attr.datetime]="detailsData.time">{{ detailsData.date }}</time>
-        </p>
       </div>
     </li>
   </ul>

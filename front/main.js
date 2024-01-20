@@ -1,5 +1,6 @@
 const { app, BrowserWindow, screen, ipcMain } = require("electron");
 const fetch = require('electron-fetch').default || require('electron-fetch');
+const fs = require('fs');
 
 const path = require('path');
 const url = require('url');
@@ -28,33 +29,6 @@ function createWindow() {
   });
 }
 
-
-function createDetailsWindow(data) {
-  console.log('Creando ventana de detalles con datos:', data);
-  const detailsWindow = new BrowserWindow({
-    width: 400,
-    height: 600,
-    title: "Title Bitcoin",
-    resizable: false,
-    parent: appWin,
-    webPreferences: {
-      contextIsolation: false,
-      nodeIntegration: true,
-    },
-  });
-
-  detailsWindow.loadURL(url.format({
-    pathname: path.join(__dirname, 'dist/browser/index.html'),
-    protocol: 'file',
-    slashes: true,
-    hash: '/details'
-  }));
-
-  detailsWindow.webContents.on('did-finish-load', () => {
-    detailsWindow.webContents.send('details-data', data);
-  });
-}
-
 app.on('ready', createWindow);
 
 app.on('activate', function () {
@@ -75,11 +49,22 @@ const sendBitcoinData = async () => {
     // Send data to the renderer
     appWin.webContents.send('update-bitcoin-data', { twoWeeksData: bitCoinDataTwoWeeks });
 
+    // Saves the data to a file
+    fs.writeFileSync('bitcoinDataTwoWeeks.json', JSON.stringify(bitCoinDataTwoWeeks));
+
     setTimeout(sendBitcoinData, 24 * 60 * 60 * 1000);
   } catch (err) {
-    console.error('Error fetching data for the last two weeks: ', err);
 
-    appWin.webContents.send('update-bitcoin-data', { error: `Failed to fetch data for the last two weeks: ${err.message || 'Unknown error'}` });
+    //Attempts to obtain the data stored in the file
+
+    try {
+      const storedData = JSON.parse(fs.readFileSync('bitcoinDataTwoWeeks.json', 'utf8'));
+      appWin.webContents.send('update-bitcoin-data', { twoWeeksData: storedData });
+    } catch (readError) {
+      console.error('Error fetching data for the last two weeks: ', err);
+
+      appWin.webContents.send('update-bitcoin-data', { error: `Failed to fetch data for the last two weeks: ${err.message || 'Unknown error'}` });
+    }
   }
 };
 
@@ -96,11 +81,20 @@ app.whenReady().then(async () => {
 
     // Send data to the renderer
     appWin.webContents.send('update-bitcoin-today-data', { todayData: bitCoinDataToday });
-  } catch (err) {
-    console.error('Error fetching data: ', err.message);
 
-    // Send error to the renderer
-    appWin.webContents.send('update-bitcoin-today-data', { error: 'Failed to fetch data' });
+    // Saves the data to a file
+    fs.writeFileSync('bitcoinDataToday.json', JSON.stringify(bitCoinDataToday));
+  } catch (err) {
+    // Attempt to get the data stored in the file
+    try {
+      const storedData = JSON.parse(fs.readFileSync('bitcoinDataToday.json', 'utf8'));
+      appWin.webContents.send('update-bitcoin-today-data', { todayData: storedData });
+    } catch (readError) {
+      console.error('Error fetching data: ', err.message);
+
+      // Send error to the renderer if both fetching and stored data fail
+      appWin.webContents.send('update-bitcoin-today-data', { error: 'Failed to fetch or retrieve data' });
+    }
   }
 
 
@@ -123,6 +117,37 @@ app.whenReady().then(async () => {
 });
 
 ipcMain.on('open-details-window', (event, data) => {
-  console.log('Recibido evento open-details-window con datos:', data);
-  createDetailsWindow(data);
+  let subWindow = new BrowserWindow({
+    width: 400,
+    height: 300,
+    parent: appWin,
+    modal: true,
+    show: false,
+    resizable: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    }
+  });
+
+  subWindow.loadURL(
+    app.isPackaged
+      ? url.format({
+        pathname: path.join(__dirname, 'dist/browser/index.html'),
+        protocol: 'file:',
+        slashes: true,
+        hash: '/details'
+      })
+      : 'http://localhost:4200/details'
+  );
+
+  subWindow.webContents.on('did-finish-load', () => {
+    subWindow.webContents.send('data-details', data);
+    subWindow.show();
+  });
+
+  subWindow.on('closed', function () {
+    subWindow = null
+  });
 });
+

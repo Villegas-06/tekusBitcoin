@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ElectronService } from 'ngx-electron';
 import { NgZone } from '@angular/core';
@@ -11,8 +11,10 @@ import { NgZone } from '@angular/core';
   styleUrl: './bitcoin-details.component.css',
 })
 export class BitcoinDetailsComponent implements OnInit {
-  @Input() detailsData: any;
+  detailsData: any = [];
   detailsReady: boolean = false;
+  priceBitcoinCop: number = 0.0;
+  priceBitcoinEur: number = 0.0;
 
   constructor(
     private _electronService: ElectronService,
@@ -20,10 +22,15 @@ export class BitcoinDetailsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this._electronService.ipcRenderer.on('details-data', (event, data) => {
+    this._electronService.ipcRenderer.on('data-details', (event, data) => {
       this.ngZone.run(() => {
         this.detailsData = data;
-        console.log(this.detailsData);
+
+        // Conversion to COP
+        this.priceBitcoinCop = data.priceUsd * 4000;
+
+        // Conversion to EUR
+        this.priceBitcoinEur = data.priceUsd * 0.92;
         this.checkDetailReady();
       });
     });

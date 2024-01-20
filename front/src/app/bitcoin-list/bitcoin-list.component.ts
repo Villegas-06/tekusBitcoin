@@ -28,6 +28,7 @@ export class BitcoinListComponent implements OnInit {
         this.ngZone.run(() => {
           this.twoWeeksData = data.twoWeeksData.data.reverse();
           this.checkDataReady();
+          console.log('Received update-bitcoin-data event:', data);
         });
       }
     );
@@ -38,13 +39,14 @@ export class BitcoinListComponent implements OnInit {
         this.ngZone.run(() => {
           this.todayData = data.todayData.data.at(-1);
           this.checkDataReady();
+          console.log('Received update-bitcoin-today-data event:', data);
         });
       }
     );
   }
 
   openDetailsWindow(data: any): void {
-    console.log('Abriendo ventana de detalles con datos:', data);
+    console.log('Sending open-details-window event:', data);
     this._electronService.ipcRenderer.send('open-details-window', data);
   }
 
