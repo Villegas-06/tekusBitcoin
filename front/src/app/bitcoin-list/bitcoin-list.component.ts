@@ -20,15 +20,19 @@ export class BitcoinListComponent implements OnInit {
     private _electronService: ElectronService,
     private ngZone: NgZone
   ) {}
-
   ngOnInit(): void {
     this._electronService.ipcRenderer.on(
       'update-bitcoin-data',
       (event, data) => {
+        console.log(data);
+
         this.ngZone.run(() => {
-          this.twoWeeksData = data.twoWeeksData.data.reverse();
-          this.checkDataReady();
-          console.log('Received update-bitcoin-data event:', data);
+          try {
+            this.twoWeeksData = data.twoWeeksData.data.reverse();
+            this.checkDataReady();
+          } catch (error) {
+            console.error('Error processing update-bitcoin-data event:', error);
+          }
         });
       }
     );
@@ -36,10 +40,18 @@ export class BitcoinListComponent implements OnInit {
     this._electronService.ipcRenderer.on(
       'update-bitcoin-today-data',
       (event, data) => {
+        console.log('Received update-bitcoin-today-data event:', data);
+
         this.ngZone.run(() => {
-          this.todayData = data.todayData.data.at(-1);
-          this.checkDataReady();
-          console.log('Received update-bitcoin-today-data event:', data);
+          try {
+            this.todayData = data.todayData.data.at(-1);
+            this.checkDataReady();
+          } catch (error) {
+            console.error(
+              'Error processing update-bitcoin-today-data event:',
+              error
+            );
+          }
         });
       }
     );
